@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="pcl_node" pkg="pcl_segmentation" type="pcl_node" output="screen">
+    <remap from="points" to="/camera/depth/points"/>
+  </node>
+
+</launch>
