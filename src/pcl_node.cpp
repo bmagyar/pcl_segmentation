@@ -13,7 +13,7 @@
 
 #include <iostream>
 
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 ros::Publisher segmented_objects;
 ros::Publisher segmented_plane;
 ros::Publisher segmented_convexHull;
@@ -24,13 +24,13 @@ void callback(const PointCloud::ConstPtr& msg)
   //BOOST_FOREACH (const pcl::PointXYZ& pt, msg->points)
   //printf ("\t(%f, %f, %f)\n", pt.x, pt.y, pt.z);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr plane(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr convexHull(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr objects(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr convexHull(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr objects(new pcl::PointCloud<pcl::PointXYZRGB>);
 
   // Get the plane model, if present.
       pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
-      pcl::SACSegmentation<pcl::PointXYZ> segmentation;
+      pcl::SACSegmentation<pcl::PointXYZRGB> segmentation;
       segmentation.setInputCloud(msg);
       segmentation.setModelType(pcl::SACMODEL_PLANE);
       segmentation.setMethodType(pcl::SAC_RANSAC);
@@ -44,13 +44,13 @@ void callback(const PointCloud::ConstPtr& msg)
       else
       {
           // Copy the points of the plane to a new cloud.
-          pcl::ExtractIndices<pcl::PointXYZ> extract;
+          pcl::ExtractIndices<pcl::PointXYZRGB> extract;
           extract.setInputCloud(msg);
           extract.setIndices(planeIndices);
           extract.filter(*plane);
 
           // Retrieve the convex hull.
-          pcl::ConvexHull<pcl::PointXYZ> hull;
+          pcl::ConvexHull<pcl::PointXYZRGB> hull;
           hull.setInputCloud(plane);
           // Make sure that the resulting hull is bidimensional.
           hull.setDimension(2);
@@ -60,7 +60,7 @@ void callback(const PointCloud::ConstPtr& msg)
           if (hull.getDimension() == 2)
           {
               // Prism object.
-              pcl::ExtractPolygonalPrismData<pcl::PointXYZ> prism;
+              pcl::ExtractPolygonalPrismData<pcl::PointXYZRGB> prism;
               prism.setInputCloud(msg);
               prism.setInputPlanarHull(convexHull);
               // First parameter: minimum Z value. Set to 0, segments objects lying on the plane (can be negative).
