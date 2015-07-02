@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+<include file="$(find openni_launch)/launch/openni.launch" >
+ <arg name="depth_registration" value="true" />
+</include>
+
+</launch>
