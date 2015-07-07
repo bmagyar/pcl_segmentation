@@ -8,13 +8,23 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   image_geometry
+  message_generation
+)
+
+add_message_files(
+  FILES
+  ObjectClusters.msg	
+  ObjectCluster.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  sensor_msgs
+  std_msgs
 )
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES pcl_segmentation
-#  CATKIN_DEPENDS cv_bridge geometry_msgs pcl_ros roscpp sensor_msgs
-#  DEPENDS system_lib
+  CATKIN_DEPENDS message_runtime
 )
 
 include_directories(

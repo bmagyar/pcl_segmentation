@@ -13,6 +13,14 @@
 #include <pcl/segmentation/extract_clusters.h>
 #include <image_geometry/pinhole_camera_model.h>
 #include <cv_bridge/cv_bridge.h>
+#include <pcl_segmentation/ObjectCluster.h>
+#include <pcl_segmentation/ObjectClusters.h>
+
+pcl_segmentation::ObjectCluster obj;
+//obj.mask =
+//obj.object_id =
+pcl_segmentation::ObjectClusters objs;
+//objs.objects.push_back(obj);
 
 
 #include <iostream>
