@@ -11,6 +11,9 @@
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/segmentation/extract_clusters.h>
+#include <image_geometry/pinhole_camera_model.h>
+#include <cv_bridge/cv_bridge.h>
+
 
 #include <iostream>
 
@@ -22,6 +25,9 @@ ros::Publisher clustering1;
 ros::Publisher clustering2;
 ros::Publisher clustering3;
 ros::Publisher clustering4;
+ros::Publisher masking;
+
+boost::shared_ptr<sensor_msgs::CameraInfo const> CameraInfo;
 
 void callback(const PointCloud::ConstPtr& msg)
 {
@@ -31,6 +37,9 @@ void callback(const PointCloud::ConstPtr& msg)
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr plane(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr convexHull(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr objects(new pcl::PointCloud<pcl::PointXYZRGB>);
+
+  image_geometry::PinholeCameraModel cam_model;
+  cam_model.fromCameraInfo(CameraInfo);
 
   // Get the plane model, if present.
       pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -92,31 +101,60 @@ void callback(const PointCloud::ConstPtr& msg)
               ec.setInputCloud (objects);
               ec.extract (cluster_indices);
 
+              cv::Mat mask_image = cv::Mat::zeros(CameraInfo->height, CameraInfo->width, CV_8UC1);
+
               pcl::ExtractIndices<pcl::PointXYZRGB> extract_object_indices;
               std::vector<pcl::PointCloud<pcl::PointXYZRGB> > objectf;
               for(int i = 0; i<cluster_indices.size(); ++i)
               {
-                  pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
+                  pcl::PointCloud<pcl::PointXYZRGB>::Ptr object_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+                  //pcl::PointCloud<pcl::PointXYZRGB> object_cloud;
                   extract_object_indices.setInputCloud(objects);
                   extract_object_indices.setIndices(boost::make_shared<const pcl::PointIndices>(cluster_indices[i]));
-                  extract_object_indices.filter(object_cloud);
-                  objectf.push_back(object_cloud);
-                  //clustering1.publish(object_cloud);
-                  //clustering2.publish(object_cloud);
-                  //clustering3.publish(object_cloud);
-                  //clustering4.publish(object_cloud);
+                  extract_object_indices.filter(*object_cloud);
+                  objectf.push_back(*object_cloud);
+
+                  //cv::Point3d pt_cv(object_cloud->at(0).x, object_cloud->at(0).y, object_cloud->at(0).z);//init Point3d
+                  //cv::Point2d uv = cam_model.project3dToPixel(pt_cv); // project 3d point to 2d point
+                  //mask_image.at<uchar>(uv.x,uv.y) = 255;
+
+                  for (int j = 0; j < object_cloud->points.size(); j++) {
+                    pcl::PointXYZRGB p = object_cloud->points[j];
+                    cv::Point2d uv = cam_model.project3dToPixel(cv::Point3d(p.x, p.y, p.z));
+                    mask_image.at<uint8_t>(uv.y,uv.x) = 255;
+                    //printf ("\t(%f, %f)\n", uv.x, uv.y);
+                  }
+
+                  /*
+                  bool in_mask = false;
+                  for (int j = 0; j < object_cloud->points.size(); j++) {
+                    pcl::PointXYZRGB p = object_cloud->points[j];
+                    cv::Point2d uv = model.project3dToPixel(cv::Point3d(p.x, p.y, p.z));
+                    if (uv.x > 0 && uv.x < mask_image.cols && uv.y > 0 && uv.y < mask_image.rows) {
+                      if (mask_image.at<uchar>(uv.y, uv.x) == 255) {
+                        in_mask = true;
+                        break;
+                      }
+                    }
+                  }
+                  if (in_mask) {
+                    cluster_indices->size();
+                    for(size_t j=0; j < cluster_indices->size(); j++)
+                      {
+                        indices.indices.push_back((*cluster_indices)[j]);
+                      }
+                  }
+                }
+                mask.publish(indices); */
               }
 
               clustering1.publish(objectf[0]);
               clustering2.publish(objectf[1]);
               clustering3.publish(objectf[2]);
               clustering4.publish(objectf[3]);
+              masking.publish(cv_bridge::CvImage(std_msgs::Header(),"mono8", mask_image).toImageMsg());
 
               ROS_INFO_STREAM("Clusters: " << objectf.size());
-
-              // extract color information of these clusters, put in cv::Mat
-              // run histogram-based recognition on this clor information
-              // check a C++ (!!!!) OpenCV histogram tutorial
           }
           else std::cout << "The chosen hull is not planar." << std::endl;
       }
@@ -135,6 +173,9 @@ int main(int argc, char** argv)
   clustering2 = nh.advertise<PointCloud> ("cluster2",1);
   clustering3 = nh.advertise<PointCloud> ("cluster3",1);
   clustering4 = nh.advertise<PointCloud> ("cluster4",1);
+  CameraInfo  = ros::topic::waitForMessage<sensor_msgs::CameraInfo>("camera/rgb/camera_info");
+  masking = nh.advertise<sensor_msgs::Image> ("mask_image",1);
+
   ros::spin();
 }
 
