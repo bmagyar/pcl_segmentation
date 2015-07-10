@@ -7,3 +7,6 @@ Run the program
 2) In the pictures folder : roslaunch pcl_segmentation segmentation.launch 
 
 3) See the results in Rviz : rosrun rviz rviz
+
+
+![alt tag](https://raw.githubusercontent.com/bmagyar/pcl_segmentation/master/etc/Gray_Image00.png)
