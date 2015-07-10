@@ -2,6 +2,7 @@
 
   <node name="pcl_node" pkg="pcl_segmentation" type="pcl_node" output="screen">
     <remap from="points" to="/camera/depth_registered/points"/>
+    <remap from="images" to="/camera/rgb/image_raw"/>
   </node>
 
 </launch>
