@@ -17,7 +17,12 @@
 #include <pcl_segmentation/ObjectClusters.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
+#include "opencv2/imgproc/imgproc.hpp"
 #include <sensor_msgs/Image.h>
+#include "highgui.h"
+#include <stdlib.h>
+#include <stdio.h>
+
 
 pcl_segmentation::ObjectCluster obj;
 //obj.mask =
@@ -103,7 +108,7 @@ void pointCallback(const PointCloud::ConstPtr& msg)
             prism.setInputPlanarHull(convexHull);
             // First parameter: minimum Z value. Set to 0, segments objects lying on the plane (can be negative).
             // Second parameter: maximum Z value, set to 10cm. Tune it according to the height of the objects you expect.
-            prism.setHeightLimits(0.02, 0.2);
+            prism.setHeightLimits(0.05, 0.25);
             pcl::PointIndices::Ptr objectIndices(new pcl::PointIndices);
 
             // Get and show all points retrieved by the hull.
@@ -118,15 +123,17 @@ void pointCallback(const PointCloud::ConstPtr& msg)
             pcl::EuclideanClusterExtraction<pcl::PointXYZRGB> ec;
             std::vector<pcl::PointIndices> cluster_indices;
             ec.setClusterTolerance (0.05);
-            ec.setMinClusterSize (1000);
+            ec.setMinClusterSize (800);
             ec.setMaxClusterSize (10000000);
             ec.setSearchMethod (tree);
             ec.setInputCloud (objects);
             ec.extract (cluster_indices);
 
             cv::Mat mask_image = cv::Mat::zeros(CameraInfo->height, CameraInfo->width, CV_8UC1);
+            //cv::Mat mask_dilate = cv::Mat::zeros(CameraInfo->height, CameraInfo->width, CV_8UC1);
             pcl::ExtractIndices<pcl::PointXYZRGB> extract_object_indices;
             std::vector<pcl::PointCloud<pcl::PointXYZRGB> > objectf;
+            cv::Mat element;
 
             for(int i = 0; i<cluster_indices.size(); ++i)
             {
@@ -143,6 +150,7 @@ void pointCallback(const PointCloud::ConstPtr& msg)
                     mask_image.at<uint8_t>(uv.y,uv.x) = (i+1)*(255/cluster_indices.size());
                     //printf ("\t(%f, %f)\n", uv.x, uv.y);
                 }
+                dilate(mask_image,mask_image,element);
                 masking.publish(cv_bridge::CvImage(std_msgs::Header(),"mono8", mask_image).toImageMsg());
             }
             std::stringstream ss;
